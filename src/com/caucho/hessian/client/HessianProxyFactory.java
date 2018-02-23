@@ -449,6 +449,9 @@ public class HessianProxyFactory implements ServiceProxyFactory, ObjectFactory {
     if (api == null)
       throw new NullPointerException("api must not be null for HessianProxyFactory.create()");
     InvocationHandler handler = null;
+    if ((url != null) && "_hs=3".equals(url.getRef())) {
+      this._isHessian2Reply = false;
+    }
 
     handler = new HessianProxy(url, this, api);
 
@@ -460,7 +463,7 @@ public class HessianProxyFactory implements ServiceProxyFactory, ObjectFactory {
 
   public AbstractHessianInput getHessianInput(InputStream is)
   {
-    return getHessian2Input(is);
+    return this._isHessian2Reply ? this.getHessian2Input(is) : this.getHessian1Input(is);
   }
 
   public AbstractHessianInput getHessian1Input(InputStream is)
