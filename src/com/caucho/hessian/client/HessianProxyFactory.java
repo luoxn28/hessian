@@ -449,7 +449,7 @@ public class HessianProxyFactory implements ServiceProxyFactory, ObjectFactory {
     if (api == null)
       throw new NullPointerException("api must not be null for HessianProxyFactory.create()");
     InvocationHandler handler = null;
-    if ((url != null) && "_hs=3".equals(url.getRef())) {
+    if ((url != null) && !"_hs=no".equals(url.getRef())) {
       this._isHessian2Reply = false;
     }
 
