@@ -4,7 +4,7 @@
   <groupId>com.caucho</groupId>
   <artifactId>hessian</artifactId>
   <packaging>jar</packaging>
-  <version>4.0.52-SNAPSHOT</version>
+  <version>4.0.53.1</version>
   <name>Hessian Binary Web Service</name>
   <url>http://hessian.caucho.com</url>
   <description>与spring4集成，可调用hessian3.1.3服务</description>
@@ -45,14 +45,14 @@
       </resource>
     </resources>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <version>${maven_deploy_plugin_version}</version>
-        <configuration>
-          <skip>${skip_maven_deploy}</skip>
-        </configuration>
-      </plugin>
+      <!--<plugin>-->
+        <!--<groupId>org.apache.maven.plugins</groupId>-->
+        <!--<artifactId>maven-deploy-plugin</artifactId>-->
+        <!--<version>${maven_deploy_plugin_version}</version>-->
+        <!--<configuration>-->
+          <!--<skip>${skip_maven_deploy}</skip>-->
+        <!--</configuration>-->
+      <!--</plugin>-->
     </plugins>
   </build>
 

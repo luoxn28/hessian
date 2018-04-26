@@ -49,18 +49,19 @@
 package com.caucho.hessian.client;
 
 import com.caucho.hessian.io.*;
-import com.caucho.services.server.*;
+import com.caucho.services.server.AbstractSkeleton;
 
 import java.io.*;
-import java.util.logging.*;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.WeakHashMap;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.zip.*;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Proxy implementation for Hessian clients.  Applications will generally
@@ -104,6 +105,45 @@ public class HessianProxy implements InvocationHandler, Serializable {
   public URL getURL()
   {
     return _url;
+  }
+
+  /*
+   * timeKey: 用于标识服务调用跟踪 保存在http header域中 Time-Key : xxxx
+   * callee: 服务提供者信息 保存在http header域中 Callee : xxxx
+   */
+  public static final String TIMEKEY_NAME = "Time-Key";
+  public static final String CALLEE_NAME = "Callee";
+  private static ThreadLocal<String> caller = new ThreadLocal<String>();
+  private static ThreadLocal<String> recvTimeKey = new ThreadLocal<String>();
+  private static ThreadLocal<String> timeKey = new ThreadLocal<String>();
+  private static ThreadLocal<String> callee = new ThreadLocal<String>();
+
+  public static String getCaller() {
+    return caller.get();
+  }
+
+  public static void setCaller(String caller) {
+    HessianProxy.caller.set(caller);
+  }
+
+  public static String getRecvTimeKey() {
+    return recvTimeKey.get();
+  }
+
+  public static void setRecvTimeKey(String recvTimeKey) {
+    HessianProxy.recvTimeKey.set(recvTimeKey);
+  }
+
+  public static String getTimekey() {
+    return timeKey.get();
+  }
+
+  public static void setTimeKey(String timeKey) {
+    HessianProxy.timeKey.set(timeKey);
+  }
+
+  public static String getCallee() {
+    return callee.get();
   }
 
   /**
@@ -167,10 +207,16 @@ public class HessianProxy implements InvocationHandler, Serializable {
     try {
       if (log.isLoggable(Level.FINER))
         log.finer("Hessian[" + _url + "] calling " + mangleName);
-      
+
+      // 发送请求设置TimeKey信息
       conn = sendRequest(mangleName, args);
 
       is = getInputStream(conn);
+
+      // 接收到响应后提取header的Callee信息
+      if (conn instanceof HessianURLConnection) {
+        HessianProxy.callee.set(((HessianURLConnection)conn).getHeaderField(CALLEE_NAME));
+      }
 
       if (log.isLoggable(Level.FINEST)) {
         PrintWriter dbg = new PrintWriter(new LogWriter(log));
@@ -219,6 +265,11 @@ public class HessianProxy implements InvocationHandler, Serializable {
       else
         throw new HessianProtocolException("'" + (char) code + "' is an unknown code");
     } catch (HessianProtocolException e) {
+      // reset callee info when exception.
+      if (conn instanceof HessianURLConnection) {
+        HessianProxy.callee.set(null);
+      }
+
       throw new HessianRuntimeException(e);
     } finally {
       try {
@@ -272,6 +323,12 @@ public class HessianProxy implements InvocationHandler, Serializable {
 
     try {
       addRequestHeaders(conn);
+
+      // 设置TimeKey
+      String timeKeyValue = timeKey.get();
+      if (timeKeyValue != null) {
+        conn.addHeader(TIMEKEY_NAME, timeKeyValue);
+      }
 
       OutputStream os = null;
 
